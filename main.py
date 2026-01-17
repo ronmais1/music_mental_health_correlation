@@ -1,5 +1,5 @@
-from cod2 import run_question_two
-from cod1 import run_question_one
+from favourite_genre_to_mental_health import run_question_two
+from genre_mental_correlation import run_question_one
 from utilities import get_logger
 
 if __name__ == "__main__":

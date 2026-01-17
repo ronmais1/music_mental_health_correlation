@@ -1,37 +1,3 @@
-"""
-RQ2:
-Is alignment between a participant's favorite genre and the genre they listen to most
-associated with better mental health outcomes?
-
-------------------------------------------------------------
-Operational definitions:
-1) "Most listened genre":
-   For each participant, we look at all columns that start with "Frequency [".
-   We convert frequency categories to an ordinal scale:
-   Never=0, Rarely=1, Sometimes=2, Very frequently=3
-   Then, the genre with the highest score (row-wise) is chosen via idxmax().
-
-2) "Alignment":
-   Alignment = True if Fav genre == Most_Listened_Genre, otherwise False.
-
-3) "Mental_Health_Index":
-   Mental_Health_Index = mean(Anxiety, Depression, Insomnia, OCD)
-   (Each variable is on a 0–10 scale, so the mean remains on a 0–10 scale.)
-
-------------------------------------------------------------
-Hypotheses:
-H0 (null): mean Mental_Health_Index is the same in aligned and not-aligned participants.
-H1 (alt) : mean Mental_Health_Index differs between aligned and not-aligned participants.
-
-------------------------------------------------------------
-Statistical test:
-Independent samples t-test (Aligned vs Not aligned), alpha = 0.05
-
-Notes about interpretation:
-- If p < 0.05 → reject H0 (significant difference)
-- If p >= 0.05 → fail to reject H0 (no significant difference)
-"""
-
 from pathlib import Path
 import logging
 
@@ -39,12 +5,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import ttest_ind
 from utilities import load_data, basic_cleaning, get_logger
+from visualize import plot_boxplot
 from consts import HEALTH_COLS, FREQ_MAPPING, FREQ_PREFIX, TIMESTAMP, AGE, HOURS_PER_DAY, FAV_GENRE, MOST_LISTENED_GENRE, ALIGNMENT, MENTAL_HEALTH_INDEX, FREQ_PREFIX
 
 
 def encode_genre_frequencies(df: pd.DataFrame, logger: logging.Logger) -> tuple[pd.DataFrame, list[str]]:
     """
-    Step 3: Encode genre listening frequency columns to ordinal numeric values.
+    Encode genre listening frequency columns to ordinal numeric values.
 
     We find all columns that start with "Frequency [".
     Then map the text values (Never/Rarely/...) to integers (0..3).
@@ -65,7 +32,7 @@ def encode_genre_frequencies(df: pd.DataFrame, logger: logging.Logger) -> tuple[
 
 def compute_most_listened_genre(df: pd.DataFrame, genre_cols: list[str], logger: logging.Logger) -> pd.DataFrame:
     """
-    Step 4: Compute the most listened genre per participant.
+    Compute the most listened genre per participant.
 
     We use idxmax(axis=1) to select the frequency column with the highest value in each row.
     Then we clean the column label to keep only the genre name.
@@ -86,7 +53,7 @@ def compute_most_listened_genre(df: pd.DataFrame, genre_cols: list[str], logger:
 
 def compute_alignment(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
     """
-    Step 5: Create Alignment boolean variable.
+    Create Alignment boolean variable.
     Alignment is True if favorite genre equals most listened genre.
     """
     df = df.copy()
@@ -101,7 +68,7 @@ def compute_alignment(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
 
 def compute_mental_health_index(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
     """
-    Step 6: Create Mental_Health_Index.
+    Create Mental_Health_Index.
     We use the mean of Anxiety, Depression, Insomnia, and OCD for each participant.
     """
     df = df.copy()
@@ -114,7 +81,7 @@ def compute_mental_health_index(df: pd.DataFrame, logger: logging.Logger) -> pd.
 
 def run_ttest(df: pd.DataFrame, logger: logging.Logger) -> tuple[float, float]:
     """
-    Step 8: Statistical test.
+    Statistical test.
     Independent samples t-test comparing Mental_Health_Index for:
     - aligned participants
     - not aligned participants
@@ -136,33 +103,12 @@ def run_ttest(df: pd.DataFrame, logger: logging.Logger) -> tuple[float, float]:
     return t_stat, p_value
 
 
-def plot_boxplot(df: pd.DataFrame, out_path: Path, logger: logging.Logger, show: bool = False) -> None:
-    """
-    Step 7: Visualization (boxplot).
-    We save the plot to a file so the script never "gets stuck" only showing a window.
-    show=False prevents blocking/KeyboardInterrupt.
-    """
-    plt.figure(figsize=(6, 4))
-    df.boxplot(column="Mental_Health_Index", by="Alignment")
 
-    plt.title("Mental Health Index by Music Alignment")
-    plt.suptitle("")
-    plt.xlabel("Alignment (Favorite vs. Most Listened Genre)")
-    plt.ylabel("Mental Health Index (0–10)")
-
-    plt.tight_layout()
-    plt.savefig(out_path, dpi=200)
-    logger.info(f"Saved plot to: {out_path}")
-
-    if show:
-        plt.show()
-
-    plt.close()
 
 
 def run_question_two(logger) -> None:
     """
-    Main pipeline (minimal): load → clean → encode → compute variables → test → plot → interpret.
+    Main pipeline (minimal): load the data → clean the data → encode the data → compute variables (genre, alignment, mental index) → test → plot (visualize) → interpret.
     """
     # IMPORTANT:
     # The CSV must be located in the SAME folder as this script

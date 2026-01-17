@@ -3,6 +3,28 @@ import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 import statsmodels.api as sm
 
+def plot_boxplot(df: pd.DataFrame, out_path: Path, logger: logging.Logger, show: bool = False) -> None:
+    """
+    Visualization (boxplot).
+    We save the plot to a file so the script never "gets stuck" only showing a window.
+    show=False prevents blocking/KeyboardInterrupt.
+    """
+    plt.figure(figsize=(6, 4))
+    df.boxplot(column="Mental_Health_Index", by="Alignment")
+
+    plt.title("Mental Health Index by Music Alignment")
+    plt.suptitle("")
+    plt.xlabel("Alignment (Favorite vs. Most Listened Genre)")
+    plt.ylabel("Mental Health Index (0–10)")
+
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=200)
+    logger.info(f"Saved plot to: {out_path}")
+
+    if show:
+        plt.show()
+
+    plt.close()
 
 def plot_correlation_heatmap(df, columns, logger):
     """
