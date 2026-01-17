@@ -38,22 +38,8 @@ import logging
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import ttest_ind
-from utilities import load_data, basic_cleaning
-from consts import HEALTH_COLS, FREQ_MAPPING, FREQ_PREFIX
-
-def get_logger() -> logging.Logger:
-    """
-    Create a logger (instead of many print statements).
-    This keeps output clean and professional (and easier to debug).
-    """
-    logger = logging.getLogger("q2_alignment")
-    if not logger.handlers:
-        logger.setLevel(logging.INFO)
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-    return logger
+from utilities import load_data, basic_cleaning, get_logger
+from consts import HEALTH_COLS, FREQ_MAPPING, FREQ_PREFIX, TIMESTAMP, AGE, HOURS_PER_DAY, FAV_GENRE, MOST_LISTENED_GENRE, ALIGNMENT, MENTAL_HEALTH_INDEX, FREQ_PREFIX
 
 
 def encode_genre_frequencies(df: pd.DataFrame, logger: logging.Logger) -> tuple[pd.DataFrame, list[str]]:
@@ -174,12 +160,10 @@ def plot_boxplot(df: pd.DataFrame, out_path: Path, logger: logging.Logger, show:
     plt.close()
 
 
-def run_question_two() -> None:
+def run_question_two(logger) -> None:
     """
     Main pipeline (minimal): load → clean → encode → compute variables → test → plot → interpret.
     """
-    logger = get_logger()
-
     # IMPORTANT:
     # The CSV must be located in the SAME folder as this script
     # because we build the path relative to this file.

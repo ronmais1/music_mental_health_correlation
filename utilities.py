@@ -25,6 +25,12 @@ def basic_cleaning(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
     logger.info(f"Rows after cleaning: {after} (dropped {before - after})")
     return df
 
+def get_logger() -> logging.Logger:
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+
+    return logger
+
 
 def encode_categorical_data(df, columns, mapping):
     """
