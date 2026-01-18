@@ -117,8 +117,8 @@ def run_question_two(logger) -> None:
     csv_path = script_dir / "mxmh_survey_results.csv"
     plot_path = script_dir / "alignment_boxplot.png"
 
-    df = load_data(csv_path, logger)
-    df = basic_cleaning(df, logger)
+    df = load_data(csv_path, logger, HEALTH_COLS)
+    df = basic_cleaning(df, logger, HEALTH_COLS)
     df, genre_cols = encode_genre_frequencies(df, logger)
     df = compute_most_listened_genre(df, genre_cols, logger)
     df = compute_alignment(df, logger)
