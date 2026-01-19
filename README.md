@@ -3,9 +3,6 @@ Assumptions
 Thesis
 Results
 
-Key stages thesis 1:
-<hadar fill here>
-
 
 Project structure:
 ./main.py - start point of the project
