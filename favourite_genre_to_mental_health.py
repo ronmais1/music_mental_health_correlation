@@ -115,16 +115,15 @@ def run_question_two(logger) -> None:
     # because we build the path relative to this file.
     script_dir = Path(__file__).resolve().parent
     csv_path = script_dir / "mxmh_survey_results.csv"
-    plot_path = script_dir / "alignment_boxplot.png"
 
     df = load_data(csv_path, logger)
-    df = basic_cleaning(df, logger)
+    df = basic_cleaning(df, logger, HEALTH_COLS)
     df, genre_cols = encode_genre_frequencies(df, logger)
     df = compute_most_listened_genre(df, genre_cols, logger)
     df = compute_alignment(df, logger)
     df = compute_mental_health_index(df, logger)
     t_stat, p_value = run_ttest(df, logger)
-    plot_boxplot(df, plot_path, logger, show=False)
+    plot_boxplot(df, logger)
 
     # -----------------------------
     # Interpretation (for submission)
