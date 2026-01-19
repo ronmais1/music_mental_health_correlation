@@ -4,6 +4,5 @@ from utilities import get_logger
 
 if __name__ == "__main__":
     logger = get_logger()
-    run_all_tests(logger)
     run_question_one(logger)
     run_question_two(logger)
