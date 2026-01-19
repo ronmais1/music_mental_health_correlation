@@ -1,61 +1,37 @@
 import pandas as pd
 import pytest
 
-from cod2 import (
-    basic_cleaning,
-    encode_genre_frequencies,
+from utilities import get_logger
+from favourite_genre_to_mental_health import (
     compute_most_listened_genre,
     compute_alignment,
     compute_mental_health_index,
-    get_logger,
 )
 
 
 @pytest.fixture
 def logger():
+    """
+    Provide a project logger instance for tests.
+    """
     return get_logger()
 
 
-def test_basic_cleaning_drops_missing_required(logger):
-    df = pd.DataFrame(
-        {
-            "Age": [20, None],
-            "Hours per day": [2, 3],
-            "Anxiety": [5, 6],
-            "Depression": [5, 6],
-            "Insomnia": [5, 6],
-            "OCD": [5, 6],
-            "Fav genre": ["Rock", "Pop"],
-            "Frequency [Rock]": ["Never", "Sometimes"],
-        }
-    )
+def test_q2_alignment_and_mental_health_index_pipeline(logger):
+    """
+    Research Question 2 - core pipeline test (unit-level):
 
-    cleaned = basic_cleaning(df, logger)
+    We validate that the pipeline correctly:
+    1) Identifies the most listened genre using the max frequency column.
+    2) Computes Alignment = (Fav genre == Most_Listened_Genre).
+    3) Computes Mental_Health_Index as the mean of the 4 health columns.
 
-    assert cleaned.shape[0] == 1
+    The dataset here is synthetic and minimal so expected values are deterministic.
+    """
 
-
-def test_encode_genre_frequencies_creates_numeric(logger):
-    df = pd.DataFrame(
-        {
-            "Age": [20],
-            "Hours per day": [2],
-            "Anxiety": [5],
-            "Depression": [5],
-            "Insomnia": [5],
-            "OCD": [5],
-            "Fav genre": ["Rock"],
-            "Frequency [Rock]": ["Very frequently"],
-        }
-    )
-
-    df2, genre_cols = encode_genre_frequencies(df, logger)
-
-    assert genre_cols == ["Frequency [Rock]"]
-    assert df2["Frequency [Rock]"].iloc[0] == 3
-
-
-def test_alignment_and_index_columns_exist(logger):
+    # -------------------------
+    # Arrange: minimal dataset
+    # -------------------------
     df = pd.DataFrame(
         {
             "Age": [20],
@@ -65,16 +41,36 @@ def test_alignment_and_index_columns_exist(logger):
             "Insomnia": [2],
             "OCD": [8],
             "Fav genre": ["Rock"],
+            # Frequencies are already numeric here because this test focuses on the Q2 pipeline steps
             "Frequency [Rock]": [3],
             "Frequency [Pop]": [1],
         }
     )
+
     genre_cols = ["Frequency [Rock]", "Frequency [Pop]"]
 
+    # ---------------
+    # Act: run steps
+    # ---------------
     df = compute_most_listened_genre(df, genre_cols, logger)
     df = compute_alignment(df, logger)
     df = compute_mental_health_index(df, logger)
 
+    # ----------------------------
+    # Assert: columns were created
+    # ----------------------------
+    assert "Most_Listened_Genre" in df.columns
     assert "Alignment" in df.columns
     assert "Mental_Health_Index" in df.columns
-    assert df["Mental_Health_Index"].iloc[0] == pytest.approx(5.0, rel=0, abs=1e-9)
+
+    # --------------------------------
+    # Assert: computed values are right
+    # --------------------------------
+    assert df.loc[0, "Most_Listened_Genre"] == "Rock"
+
+    # IMPORTANT:
+    # Alignment value is often numpy.bool_ (np.True_/np.False_), so we must not use "is True".
+    assert bool(df.loc[0, "Alignment"]) is True
+
+    # Mean of (4 + 6 + 2 + 8) / 4 = 5.0
+    assert df.loc[0, "Mental_Health_Index"] == pytest.approx(5.0, abs=1e-12)
