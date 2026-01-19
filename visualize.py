@@ -1,41 +1,74 @@
-import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import statsmodels.api as sm
 from sklearn.cluster import KMeans
-from matplotlib.lines import Line2D
+import statsmodels.api as sm
+
+def plot_boxplot(df: pd.DataFrame, out_path: Path, logger: logging.Logger, show: bool = False) -> None:
+    """
+    Visualization (boxplot).
+    We save the plot to a file so the script never "gets stuck" only showing a window.
+    show=False prevents blocking/KeyboardInterrupt.
+    """
+    plt.figure(figsize=(6, 4))
+    df.boxplot(column="Mental_Health_Index", by="Alignment")
+
+    plt.title("Mental Health Index by Music Alignment")
+    plt.suptitle("")
+    plt.xlabel("Alignment (Favorite vs. Most Listened Genre)")
+    plt.ylabel("Mental Health Index (0–10)")
+
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=200)
+    logger.info(f"Saved plot to: {out_path}")
+
+    if show:
+        plt.show()
+
+    plt.close()
 
 def plot_correlation_heatmap(df, columns, logger):
     """
     Calculate and plot a correlation matrix for selected columns.
     """
+
+    # Calculate correlation matrix
     corr_matrix = df[columns].corr()
     logger.info("Correlation matrix calculated.")
 
-    plt.figure(figsize=(8, 6))
+    # Plotting
+    plt.figure(figsize=(10, 8))
     sns.heatmap(corr_matrix, annot=True, fmt=".2f", cmap='coolwarm', center=0)
-    plt.title("Correlation Matrix: Mental Health Disorders")
+    plt.title("Variable Correlation Heatmap")
     plt.tight_layout()
     plt.show()
+
+    return corr_matrix
 
 def run_genre_clustering(df, genre_cols, cluster_names_map):
     """
     Groups music genres using K-Means and visualizes the results.
+    Maintains the original sorting and 'magma' color palette.
     """
+
+    # Step 1: Data preparation (Transposing for genre-based clustering)
     genre_data = df[genre_cols].dropna().astype(float).T
     
+    # Step 2: Clustering execution
     kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
     genre_clusters = kmeans.fit_predict(genre_data)
     
+    # Step 3: Formatting for visualization
     plot_df = pd.DataFrame({
         'Genre': genre_data.index,
         'Frequency': genre_data.mean(axis=1).values,
         'Cluster_ID': genre_clusters
     })
     
+    # Mapping cluster names and sorting by ID
     plot_df['Cluster_Name'] = plot_df['Cluster_ID'].map(cluster_names_map)
     plot_df = plot_df.sort_values('Cluster_ID')
 
+    # Step 4: Visualizing the clustered bar chart
     plt.figure(figsize=(12, 6))
     sns.barplot(data=plot_df, x='Genre', y='Frequency', hue='Cluster_Name', palette='magma')
     
@@ -44,78 +77,53 @@ def run_genre_clustering(df, genre_cols, cluster_names_map):
     plt.tight_layout()
     plt.show()
 
+    # Returning results for the next steps in analysis
     return genre_data.index, genre_clusters
+
+
 
 def run_regression_analysis(df, predictors, targets, logger):
     """
-    Runs OLS regression and plots dual-chart results with significance stars.
+    Runs OLS regression and plots results with significance stars.
     """
-    for target_col, target_name in targets.items():
-        analysis_df = df[[target_col] + predictors].dropna()
-        y = analysis_df[target_col]
+    for col, name in targets.items():
+        # Prepare data
+        data = df[[col] + predictors].dropna()
+        y = data[col]
         
-        X_control = sm.add_constant(analysis_df[['Age', 'Hours per day']])
-        model_control = sm.OLS(y, X_control).fit()
+        # Models
+        X_base = sm.add_constant(data[['Age', 'Hours per day']])
+        res_base = sm.OLS(y, X_base).fit()
         
-        X_full = sm.add_constant(analysis_df[predictors])
-        model_full = sm.OLS(y, X_full).fit()
+        X_full = sm.add_constant(data[predictors])
+        res_full = sm.OLS(y, X_full).fit()
+        
+        gain = res_full.rsquared - res_base.rsquared
+        logger.info(f"{name} - R2 Gain: {gain:.4f}")
 
-        logger.info(f"\n--- Regression Results for {target_name} ---")
+        # Plotting
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6), gridspec_kw={'width_ratios': [1, 2]})
         
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7), gridspec_kw={'width_ratios': [1, 2]})
+        # R2 Comparison
+        ax1.bar(['Base', 'Full'], [res_base.rsquared, res_full.rsquared], color=['#ecf0f1', '#3498db'])
+        ax1.set_title(f"R-squared: {name}")
         
-        # Left Plot: R-squared
-        ax1.bar(['Age & Hours', 'Full Model\n(+ Genres)'], 
-                [model_control.rsquared, model_full.rsquared], 
-                color=['#BDC3C7', '#5DADE2'])
-        ax1.set_title(f"Prediction Power (R²) for {target_name}")
-        
-        gain = model_full.rsquared - model_control.rsquared
-        ax1.annotate(f"Unique Gain:\n+{gain:.1%}", xy=(0.5, model_control.rsquared + (gain/2)), 
-                     ha='center', fontweight='bold', color='black')
-
-        # Right Plot: Coefficients
-        coeffs = model_full.params[1:]
-        pvals = model_full.pvalues[1:]
-        labels, colors = [], []
+        # Coefficients & Stars
+        coeffs = res_full.params[1:]
+        pvals = res_full.pvalues[1:]
+        labels = []
+        colors = []
         
         for i in range(len(coeffs)):
             p = pvals[i]
+            # Significance stars logic
             stars = '***' if p < 0.001 else '**' if p < 0.01 else '*' if p < 0.05 else ''
             labels.append(f"{coeffs.index[i]} {stars}")
-            colors.append('red' if p < 0.05 else 'gray')
+            colors.append('#e74c3c' if p < 0.05 else '#bdc3c7')
 
         ax2.barh(labels, coeffs.values, color=colors)
-        ax2.axvline(0, color='black', linestyle='--')
-        ax2.set_title(f"Impact per Predictor - {target_name}")
-
-        legend_list = [
-            Line2D([0], [0], color='red', lw=4, label='Significant (p < 0.05)'),
-            Line2D([0], [0], color='gray', lw=4, label='Not Significant'),
-            Line2D([0], [0], color='white', label='* p<0.05, ** p<0.01, *** p<0.001')
-        ]
-        ax2.legend(handles=legend_list, loc='lower right')
+        ax2.axvline(0, color='black', ls='--')
+        ax2.set_title(f"Predictor Impact: {name}")
         
         plt.tight_layout()
         plt.show()
-
-def plot_boxplot(df, logger):
-    """
-    Visualization: Boxplot for Mental Health Index by Music Alignment.
-    """
-    # Ensure columns exist before plotting to prevent crash
-    if "Mental_Health_Index" not in df.columns or "Alignment" not in df.columns:
-        logger.error("Required columns for boxplot are missing in DataFrame.")
-        return
-
-    plt.figure(figsize=(10, 6))
-    df.boxplot(column="Mental_Health_Index", by="Alignment")
-
-    plt.title("Mental Health Index by Music Alignment")
-    plt.suptitle("") 
-    plt.xlabel("Alignment (Favorite vs. Most Listened Genre)")
-    plt.ylabel("Mental Health Index (0–10)")
-
-    plt.tight_layout()
-    plt.show()
-    logger.info("Boxplot visualization displayed.")
