@@ -1,81 +1,53 @@
-from pathlib import Path
-import logging
 import pandas as pd
-from consts import HEALTH_COLS
+import logging
+from pathlib import Path
+
+def get_logger():
+    """
+    Initializes a basic logger for the project.
+    """
+    logging.basicConfig(level=logging.INFO, format='%(message)s')
+    return logging.getLogger(__name__)
 
 def load_data(csv_path: Path, logger: logging.Logger) -> pd.DataFrame:
     """
-    Using Path makes the code robust to different working directories.
-    If the file does not exist in the expected location, raise a clear error.
+    Loads dataset from CSV path with existence check.
     """
     if not csv_path.exists():
+        logger.error(f"File not found: {csv_path}")
         raise FileNotFoundError(f"CSV not found at: {csv_path}")
+        
     df = pd.read_csv(csv_path)
     logger.info(f"Loaded data: {df.shape[0]} rows, {df.shape[1]} columns")
     return df
 
-def basic_cleaning(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
+def basic_cleaning(df, logger, health_cols):
     """
-    We drop rows with missing values in the columns required for this research question.
+    Cleans dataset by dropping NaNs in core research columns.
     """
-    required = ["Age", "Hours per day"] + HEALTH_COLS
-    before = df.shape[0]
-    df = df.dropna(subset=required).copy()
-    after = df.shape[0]
-    logger.info(f"Rows after cleaning: {after} (dropped {before - after})")
-    return df
-
-def get_logger() -> logging.Logger:
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(__name__)
-
-    return logger
-
+    # Define required columns for a valid sample
+    required = ["Age", "Hours per day"] + health_cols
+    before = len(df)
+    
+    # Drop missing values and reset index
+    df_clean = df.dropna(subset=required).copy()
+    logger.info(f"Cleaning: {len(df_clean)} rows remaining (dropped {before - len(df_clean)})")
+    return df_clean
 
 def encode_categorical_data(df, columns, mapping):
     """
-    Standardizes categorical string values into numerical format 
-    based on a provided mapping dictionary.
+    Maps string frequency values to numerical scale (0-3).
     """
-    # Create a copy to avoid modifying the original dataframe unexpectedly
     df_encoded = df.copy()
-    
     for col in columns:
         if col in df_encoded.columns:
-            # Clean string whitespace and map values
-            # Using map is more efficient than apply(lambda) for dictionaries
-            df_encoded[col] = df_encoded[col].astype(str).str.strip().map(mapping)
-            
-            # Convert to float to handle potential NaN values gracefully
-            df_encoded[col] = df_encoded[col].astype(float)
-            
+            # Clean strings and apply numeric mapping
+            df_encoded[col] = df_encoded[col].astype(str).str.strip().map(mapping).astype(float)
     return df_encoded
-
-def check_missing_data(df, logger, threshold=15.0):
-    """
-    Check for missing values and warn if above threshold.
-    """
-    missing_pct = (df.isnull().sum() / len(df)) * 100
-    
-    # Filter only columns that actually have missing values
-    stats = missing_pct[missing_pct > 0]
-    
-    if stats.empty:
-        logger.info("No missing values.")
-        return stats
-
-    for col, pct in stats.items():
-        msg = f"{col}: {pct:.2f}% missing"
-        if pct > threshold:
-            logger.warning(f"HIGH MISSING DATA: {msg}")
-        else:
-            logger.info(msg)
-            
-    return stats
 
 def get_descriptive_stats(df, columns, logger):
     """
-    Log descriptive statistics for specific research columns.
+    Logs mean, std, min, and max for specified columns.
     """
     stats = df[columns].describe().T
     logger.info(f"Descriptive Statistics:\n{stats[['mean', 'std', 'min', 'max']]}")
