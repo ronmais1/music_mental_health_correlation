@@ -10,22 +10,22 @@ from consts import HEALTH_COLS, FREQ_MAPPING, TARGET_GENRE_GROUPS
 import numpy as np
 
 def run_question_one(logger):
-    # 1. Load & Clean
+    # Load & Clean
     data_path = Path("mxmh_survey_results.csv")
     df = load_data(data_path, logger)
     df = basic_cleaning(df, logger, HEALTH_COLS)
 
-    # 2. Pre-processing
+    # Pre-processing
     # Identify genre columns and convert to numbers
     genre_cols = [col for col in df.columns if col.startswith('Frequency [')]
     df = encode_categorical_data(df, genre_cols, FREQ_MAPPING)
 
-    # 3. Exploratory Analysis
+    # Exploratory Analysis
     # Quick look at descriptive stats and correlations
     get_descriptive_stats(df, ['Age', 'Hours per day'] + HEALTH_COLS, logger)
     plot_correlation_heatmap(df, HEALTH_COLS, logger)
 
-    # 4. Clustering Phase (Question 1)
+    #  Clustering Phase (Question 1)
     cluster_names = {
         0: 'Heavy & Distortion-Based',
         1: 'Traditional & Acoustic',
@@ -41,7 +41,7 @@ def run_question_one(logger):
         df[name] = df[genres_in_cluster].mean(axis=1)
         music_features.append(name)
 
-    # 5. Regression Phase (Question 1)
+    # Regression Phase (Question 1)
     # Using our modular function with the turquoise/purple charts
     df['Distress_Index'] = df[['Anxiety', 'Depression']].mean(axis=1)
 
