@@ -195,9 +195,6 @@ def run_question_two(logger) -> None:
     plot_alignment_means(df, logger)
     plot_boxplot(df, logger)
     plot_disorders_by_alignment(df, HEALTH_COLS, logger)
-    plot_alignment_means(df, logger)
-    
-
 
     # -----------------------------
     # Interpretation (for submission)

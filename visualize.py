@@ -108,13 +108,13 @@ def plot_boxplot(df, logger):
         logger.error("Required columns for boxplot are missing in DataFrame.")
         return
 
-    plt.figure(figsize=(10, 6))
-    df.boxplot(column="Mental_Health_Index", by="Alignment")
+    fig, ax = plt.subplots(figsize=(10, 6))
+    df.boxplot(column="Mental_Health_Index", by="Alignment", ax=ax)
 
-    plt.title("Mental Health Index by Music Alignment")
-    plt.suptitle("") 
-    plt.xlabel("Alignment (Favorite vs. Most Listened Genre)")
-    plt.ylabel("Mental Health Index (0–10)")
+    ax.set_title("Mental Health Index by Music Alignment")
+    ax.set_xlabel("Alignment (Favorite vs. Most Listened Genre)")
+    ax.set_ylabel("Mental Health Index (0–10)")
+    fig.suptitle("")  # removes pandas' automatic title
 
     plt.tight_layout()
     plt.show()
@@ -130,7 +130,6 @@ def plot_alignment_means(df, logger):
     )
     stats["se"] = stats["std"] / (stats["count"] ** 0.5)
 
-    plt.figure(figsize=(8, 6))
     plt.bar(stats.index.astype(str), stats["mean"], yerr=stats["se"], capsize=5)
     plt.xlabel("Alignment")
     plt.ylabel("Mental Health Index")
