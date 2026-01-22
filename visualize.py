@@ -139,9 +139,8 @@ def plot_alignment_means(df, logger):
     plt.show()
 
     logger.info("Mean comparison plot displayed.")
-    
    
-   def plot_disorders_by_alignment(df, health_cols, logger):
+def plot_disorders_by_alignment(df, health_cols, logger):
     """
     Boxplots for each mental health measure by Alignment (True/False).
     """
