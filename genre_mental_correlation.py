@@ -6,7 +6,7 @@ from sklearn.cluster import KMeans
 from pathlib import Path
 from utilities import load_data, basic_cleaning, encode_categorical_data, get_descriptive_stats, get_logger
 from visualize import run_genre_clustering, run_regression_analysis, plot_correlation_heatmap
-from consts import HEALTH_COLS, FREQ_MAPPING, TARGET_GENRE_GROUPS
+from consts import HEALTH_COLS, FREQ_MAPPING
 import numpy as np
 
 def run_question_one(logger):
@@ -27,19 +27,19 @@ def run_question_one(logger):
 
     #  Clustering Phase (Question 1)
     cluster_names = {
-        0: 'Heavy & Distortion-Based',
+        0: 'Urban & Electronic Beats',
         1: 'Traditional & Acoustic',
-        2: 'Urban & Electronic Beats'
+        2: 'Heavy & Distortion-Based'
     }
     
     genres, clusters = run_genre_clustering(df, genre_cols, cluster_names)
 
     # Create the aggregated music features in the dataframe
     music_features = []
-    for cid, name in cluster_names.items():
+    for cid, cluster_name in cluster_names.items():
         genres_in_cluster = [genres[i] for i in range(len(genres)) if clusters[i] == cid]
-        df[name] = df[genres_in_cluster].mean(axis=1)
-        music_features.append(name)
+        df[cluster_name] = df[genres_in_cluster].mean(axis=1)
+        music_features.append(cluster_name)
 
     # Regression Phase (Question 1)
     # Using our modular function with the turquoise/purple charts
