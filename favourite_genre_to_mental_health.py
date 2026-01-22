@@ -2,9 +2,9 @@ from pathlib import Path
 import logging
 import pandas as pd
 from scipy.stats import ttest_ind
-from utilities import load_data, basic_cleaning, get_logger
+from utilities import calculate_distress_index, load_data, basic_cleaning, get_logger
 from visualize import plot_boxplot, plot_alignment_means, plot_disorders_by_alignment
-from consts import HEALTH_COLS, FREQ_MAPPING, FREQ_PREFIX
+from consts import AGGREGATED_HEALTH_COLS, HEALTH_COLS, FREQ_MAPPING, FREQ_PREFIX
 
 
 def encode_genre_frequencies(df: pd.DataFrame, logger: logging.Logger) -> tuple[pd.DataFrame, list[str]]:
@@ -194,7 +194,10 @@ def run_question_two(logger) -> None:
     
     plot_alignment_means(df, logger)
     plot_boxplot(df, logger)
-    plot_disorders_by_alignment(df, HEALTH_COLS, logger)
+
+    df = calculate_distress_index(df)
+
+    plot_disorders_by_alignment(df, AGGREGATED_HEALTH_COLS, logger)
 
     # -----------------------------
     # Interpretation (for submission)
