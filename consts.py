@@ -33,9 +33,3 @@ MENTAL_HEALTH_COLS = [ANXIETY, DEPRESSION, INSOMNIA, OCD]
 MOST_LISTENED_GENRE = "Most listened genre"
 ALIGNMENT = "Alignment"
 MENTAL_HEALTH_INDEX = "Mental health index"
-
-TARGET_GENRE_GROUPS = [
-    "Group: Rock, Metal, Pop",
-    "Group: Classical, Jazz, Folk",
-    "Group: HipHop, RB, Rap"
-]

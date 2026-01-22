@@ -36,7 +36,7 @@ def basic_cleaning(df, logger, health_cols):
 
 def encode_categorical_data(df, columns, mapping):
     """
-    Maps string frequency values to numerical scale (0-3).
+    Maps string values to numerical scale (0-3).
     """
     df_encoded = df.copy()
     for col in columns:
