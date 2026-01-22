@@ -119,3 +119,54 @@ def plot_boxplot(df, logger):
     plt.tight_layout()
     plt.show()
     logger.info("Boxplot visualization displayed.")
+    
+def plot_alignment_means(df, logger):
+    """
+    Bar plot of mean Mental Health Index by Alignment with standard error.
+    """
+    stats = (
+        df.groupby("Alignment")["Mental_Health_Index"]
+        .agg(["mean", "std", "count"])
+    )
+    stats["se"] = stats["std"] / (stats["count"] ** 0.5)
+
+    plt.figure(figsize=(8, 6))
+    plt.bar(stats.index.astype(str), stats["mean"], yerr=stats["se"], capsize=5)
+    plt.xlabel("Alignment")
+    plt.ylabel("Mental Health Index")
+    plt.title("Mean Mental Health Index by Alignment")
+    plt.tight_layout()
+    plt.show()
+
+    logger.info("Mean comparison plot displayed.")
+    
+   
+   def plot_disorders_by_alignment(df, health_cols, logger):
+    """
+    Boxplots for each mental health measure by Alignment (True/False).
+    """
+    if "Alignment" not in df.columns:
+        logger.error("Column 'Alignment' is missing.")
+        return
+
+    long_df = (
+        df.melt(
+            id_vars=["Alignment"],
+            value_vars=health_cols,
+            var_name="Disorder",
+            value_name="Score",
+        )
+        .dropna(subset=["Score"])
+    )
+
+    plt.figure(figsize=(12, 6))
+    sns.boxplot(data=long_df, x="Disorder", y="Score", hue="Alignment")
+    plt.title("Mental Health Scores by Alignment (per Disorder)")
+    plt.xlabel("Mental Health Measure")
+    plt.ylabel("Score (0–10)")
+    plt.xticks(rotation=45, ha="right")
+    plt.tight_layout()
+    plt.show()
+
+    logger.info("Per-disorder boxplots displayed.")
+

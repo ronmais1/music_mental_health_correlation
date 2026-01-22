@@ -1,12 +1,10 @@
 from pathlib import Path
 import logging
-
 import pandas as pd
-import matplotlib.pyplot as plt
 from scipy.stats import ttest_ind
 from utilities import load_data, basic_cleaning, get_logger
-from visualize import plot_boxplot
-from consts import HEALTH_COLS, FREQ_MAPPING, FREQ_PREFIX, TIMESTAMP, AGE, HOURS_PER_DAY, FAV_GENRE, MOST_LISTENED_GENRE, ALIGNMENT, MENTAL_HEALTH_INDEX, FREQ_PREFIX
+from visualize import plot_boxplot, plot_alignment_means, plot_disorders_by_alignment
+from consts import HEALTH_COLS, FREQ_MAPPING, FREQ_PREFIX
 
 
 def encode_genre_frequencies(df: pd.DataFrame, logger: logging.Logger) -> tuple[pd.DataFrame, list[str]]:
@@ -22,7 +20,16 @@ def encode_genre_frequencies(df: pd.DataFrame, logger: logging.Logger) -> tuple[
 
     df = df.copy()
     for col in genre_cols:
-        df[col] = df[col].map(FREQ_MAPPING)
+        df[col] = df[col].astype(str).str.strip().map(FREQ_MAPPING)
+        
+    # Check if mapping created NaN values (unmapped labels)
+    missing = df[genre_cols].isna().sum().sum()
+    if missing > 0:
+        logger.warning(
+        f"Encoding warning: {missing} unmapped frequency values became NaN. "
+        "Check FREQ_MAPPING or raw data labels."
+    )
+
 
     logger.info(f"Encoded {len(genre_cols)} genre frequency columns.")
     logger.info("Sample of encoded genre columns (head):")
@@ -65,6 +72,26 @@ def compute_alignment(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
     logger.info("\n" + str(df["Alignment"].value_counts()))
     return df
 
+def summarize_alignment_distribution(df: pd.DataFrame, logger: logging.Logger) -> None:
+    """
+    Q2 - Descriptive step:
+    Summarize how common alignment is in the sample.
+
+    We log:
+    - counts of Alignment (True/False)
+    - percentages of Alignment (True/False)
+    """
+    counts = df["Alignment"].value_counts(dropna=False)
+    percents = df["Alignment"].value_counts(normalize=True, dropna=False) * 100
+
+    logger.info("=== Q2: Alignment Distribution ===")
+    logger.info("Counts (N):")
+    logger.info("\n" + str(counts))
+
+    logger.info("Percentages (%):")
+    logger.info("\n" + str(percents.round(2)))
+
+
 
 def compute_mental_health_index(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
     """
@@ -77,6 +104,20 @@ def compute_mental_health_index(df: pd.DataFrame, logger: logging.Logger) -> pd.
     logger.info("Mental health columns + index (head):")
     logger.info("\n" + str(df[HEALTH_COLS + ["Mental_Health_Index"]].head()))
     return df
+
+def summarize_alignment_statistic(df, logger):
+    """
+    Descriptive statistics of Mental Health Index by Alignment.
+    """
+    summary = (
+        df.groupby("Alignment")["Mental_Health_Index"]
+        .agg(["count", "mean", "std"])
+    )
+
+    logger.info("=== Q2: Mental Health Index by Alignment ===")
+    logger.info(f"\n{summary}")
+
+    return summary
 
 
 def run_ttest(df: pd.DataFrame, logger: logging.Logger) -> tuple[float, float]:
@@ -102,6 +143,27 @@ def run_ttest(df: pd.DataFrame, logger: logging.Logger) -> tuple[float, float]:
 
     return t_stat, p_value
 
+def run_ttests_per_disorder(df: pd.DataFrame, logger: logging.Logger):
+    """
+    Run independent t-tests for each mental health variable
+    comparing aligned vs. not-aligned participants.
+    """
+    logger.info("=== Q2: T-tests per Mental Health Variable ===")
+
+    for col in HEALTH_COLS:
+        aligned = df[df["Alignment"] == True][col]
+        not_aligned = df[df["Alignment"] == False][col]
+
+        t_stat, p_value = ttest_ind(aligned, not_aligned, nan_policy="omit")
+
+        logger.info(f"\n{col}:")
+        logger.info(f"  t = {t_stat:.3f}")
+        logger.info(f"  p = {p_value:.4f}")
+
+        if p_value < 0.05:
+            logger.info("  Result: Significant difference (p < 0.05)")
+        else:
+            logger.info("  Result: Not significant (p ≥ 0.05)")
 
 
 
@@ -120,10 +182,22 @@ def run_question_two(logger) -> None:
     df = basic_cleaning(df, logger, HEALTH_COLS)
     df, genre_cols = encode_genre_frequencies(df, logger)
     df = compute_most_listened_genre(df, genre_cols, logger)
+    
     df = compute_alignment(df, logger)
+    summarize_alignment_distribution(df, logger)
+    
     df = compute_mental_health_index(df, logger)
+    summarize_alignment_statistic(df, logger)
+
     t_stat, p_value = run_ttest(df, logger)
+    run_ttests_per_disorder(df, logger)
+    
+    plot_alignment_means(df, logger)
     plot_boxplot(df, logger)
+    plot_disorders_by_alignment(df, HEALTH_COLS, logger)
+    plot_alignment_means(df, logger)
+    
+
 
     # -----------------------------
     # Interpretation (for submission)
@@ -139,6 +213,9 @@ def run_question_two(logger) -> None:
             "There is no statistically significant difference in Mental_Health_Index "
             "between aligned and not-aligned participants in this sample."
         )
-        
-        
+    
+    
     logger.info("Done.")
+  
+
+ 
