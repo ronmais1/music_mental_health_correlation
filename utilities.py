@@ -51,9 +51,6 @@ def get_descriptive_stats(df, columns, logger):
     """
     stats = df[columns].describe().T
     logger.info(f"Descriptive Statistics:\n{stats[['mean', 'std', 'min', 'max']]}")
-<<<<<<< Updated upstream
-    return stats
-=======
     return stats
 
 def calculate_distress_index(df):
@@ -64,4 +61,3 @@ def calculate_distress_index(df):
     new_df['Distress_Index'] = df[['Anxiety', 'Depression']].mean(axis=1)
 
     return new_df
->>>>>>> Stashed changes

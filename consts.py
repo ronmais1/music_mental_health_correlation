@@ -1,6 +1,9 @@
 # Ordinal encoding for frequency scale
 HEALTH_COLS = ["Anxiety", "Depression", "Insomnia", "OCD"]
 
+DISTRESS_INDEX_COLUMN = "Distress_Index"
+AGGREGATED_HEALTH_COLS = [DISTRESS_INDEX_COLUMN, "Insomnia", "OCD"]
+
 FREQ_MAPPING = {
     "Never": 0,
     "Rarely": 1,

@@ -2,9 +2,9 @@ from pathlib import Path
 import logging
 import pandas as pd
 from scipy.stats import ttest_ind
-from utilities import load_data, basic_cleaning, get_logger
+from utilities import calculate_distress_index, load_data, basic_cleaning
 from visualize import plot_boxplot, plot_alignment_means, plot_disorders_by_alignment
-from consts import HEALTH_COLS, FREQ_MAPPING, FREQ_PREFIX
+from consts import AGGREGATED_HEALTH_COLS, HEALTH_COLS, FREQ_MAPPING, FREQ_PREFIX
 
 
 def encode_genre_frequencies(df: pd.DataFrame, logger: logging.Logger) -> tuple[pd.DataFrame, list[str]]:
@@ -119,20 +119,24 @@ def summarize_alignment_statistic(df, logger):
 
     return summary
 
+def _split_by_alignment(df: pd.DataFrame, col: str) -> tuple[pd.Series, pd.Series]:
+    """Return two series: aligned values and not-aligned values for the given column."""
+    aligned = df.loc[df["Alignment"] == True, col]
+    not_aligned = df.loc[df["Alignment"] == False, col]
+    return aligned, not_aligned
 
-def run_ttest(df: pd.DataFrame, logger: logging.Logger) -> tuple[float, float]:
+
+def run_ttest(df: pd.DataFrame, outcome_col: str, logger: logging.Logger, label: str | None = None) -> tuple[float, float]:
     """
-    Statistical test.
-    Independent samples t-test comparing Mental_Health_Index for:
+    Independent samples t-test comparing outcome_col between:
     - aligned participants
     - not aligned participants
     """
-    aligned = df[df["Alignment"] == True]["Mental_Health_Index"]
-    not_aligned = df[df["Alignment"] == False]["Mental_Health_Index"]
-
+    aligned, not_aligned = _split_by_alignment(df, outcome_col)
     t_stat, p_value = ttest_ind(aligned, not_aligned, nan_policy="omit")
 
-    logger.info("T-test results (Aligned vs Not aligned):")
+    title = label or outcome_col
+    logger.info(f"T-test results (Aligned vs Not aligned) — {title}:")
     logger.info(f"t-statistic = {t_stat:.3f}")
     logger.info(f"p-value     = {p_value:.4f}")
 
@@ -143,17 +147,15 @@ def run_ttest(df: pd.DataFrame, logger: logging.Logger) -> tuple[float, float]:
 
     return t_stat, p_value
 
-def run_ttests_per_disorder(df: pd.DataFrame, logger: logging.Logger):
+
+def run_ttests_per_disorder(df: pd.DataFrame, health_cols: list[str], logger: logging.Logger) -> None:
     """
-    Run independent t-tests for each mental health variable
-    comparing aligned vs. not-aligned participants.
+    Run independent t-tests for each mental health variable comparing aligned vs not-aligned.
     """
     logger.info("=== Q2: T-tests per Mental Health Variable ===")
 
-    for col in HEALTH_COLS:
-        aligned = df[df["Alignment"] == True][col]
-        not_aligned = df[df["Alignment"] == False][col]
-
+    for col in health_cols:
+        aligned, not_aligned = _split_by_alignment(df, col)
         t_stat, p_value = ttest_ind(aligned, not_aligned, nan_policy="omit")
 
         logger.info(f"\n{col}:")
@@ -164,8 +166,6 @@ def run_ttests_per_disorder(df: pd.DataFrame, logger: logging.Logger):
             logger.info("  Result: Significant difference (p < 0.05)")
         else:
             logger.info("  Result: Not significant (p ≥ 0.05)")
-
-
 
 
 def run_question_two(logger) -> None:
@@ -189,12 +189,21 @@ def run_question_two(logger) -> None:
     df = compute_mental_health_index(df, logger)
     summarize_alignment_statistic(df, logger)
 
-    t_stat, p_value = run_ttest(df, logger)
-    run_ttests_per_disorder(df, logger)
-    
+    # 1) t-test on the overall index (this answers the main hypothesis directly)
+    t_stat, p_value = run_ttest(df, "Mental_Health_Index", logger, label="Mental_Health_Index")
+
+    # 2) Visualize overall comparison
     plot_alignment_means(df, logger)
     plot_boxplot(df, logger)
-    plot_disorders_by_alignment(df, HEALTH_COLS, logger)
+
+    # 3) Build aggregated measure (Distress_Index) and test per final measures
+    df = calculate_distress_index(df)
+    run_ttests_per_disorder(df, AGGREGATED_HEALTH_COLS, logger)
+
+    # 4) Visualize per-measure distributions (aligned vs not aligned)
+    plot_disorders_by_alignment(df, AGGREGATED_HEALTH_COLS, logger)
+
+
 
     # -----------------------------
     # Interpretation (for submission)

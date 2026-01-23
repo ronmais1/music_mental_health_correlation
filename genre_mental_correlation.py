@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import statsmodels.api as sm
 from sklearn.cluster import KMeans
 from pathlib import Path
-from utilities import load_data, basic_cleaning, encode_categorical_data, get_descriptive_stats, get_logger
+from utilities import load_data, basic_cleaning, encode_categorical_data, get_descriptive_stats, get_logger, calculate_distress_index
 from visualize import run_genre_clustering, run_regression_analysis, plot_correlation_heatmap
 from consts import HEALTH_COLS, FREQ_MAPPING
 import numpy as np
@@ -43,7 +43,7 @@ def run_question_one(logger):
 
     # Regression Phase (Question 1)
     # Using our modular function with the turquoise/purple charts
-    df['Distress_Index'] = df[['Anxiety', 'Depression']].mean(axis=1)
+    df = calculate_distress_index(df)
 
     # Define targets as a DICTIONARY 
     TARGET_GENRE_GROUPS = {
