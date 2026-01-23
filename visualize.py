@@ -4,6 +4,20 @@ import matplotlib.pyplot as plt
 import statsmodels.api as sm
 from sklearn.cluster import KMeans
 from matplotlib.lines import Line2D
+from scipy.stats import ttest_ind
+
+def _apply_plot_style():
+    sns.set_theme(style="whitegrid", context="talk")
+    plt.rcParams["figure.dpi"] = 120
+    plt.rcParams["axes.spines.top"] = False
+    plt.rcParams["axes.spines.right"] = False
+
+
+def _alignment_labels():
+    order = [False, True]
+    labels = {False: "Not aligned", True: "Aligned"}
+    return order, labels
+
 
 def plot_correlation_heatmap(df, columns, logger):
     """
@@ -100,71 +114,148 @@ def run_regression_analysis(df, predictors, targets, logger):
         plt.show()
 
 def plot_boxplot(df, logger):
-    """
-    Visualization: Boxplot for Mental Health Index by Music Alignment.
-    """
-    # Ensure columns exist before plotting to prevent crash
+    _apply_plot_style()
+    order, labels = _alignment_labels()
+
     if "Mental_Health_Index" not in df.columns or "Alignment" not in df.columns:
         logger.error("Required columns for boxplot are missing in DataFrame.")
         return
 
-    fig, ax = plt.subplots(figsize=(10, 6))
-    df.boxplot(column="Mental_Health_Index", by="Alignment", ax=ax)
+    plot_df = df.dropna(subset=["Mental_Health_Index", "Alignment"]).copy()
+    plot_df["Alignment_Label"] = plot_df["Alignment"].map(labels)
 
-    ax.set_title("Mental Health Index by Music Alignment")
-    ax.set_xlabel("Alignment (Favorite vs. Most Listened Genre)")
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.boxplot(
+        data=plot_df,
+        x="Alignment_Label",
+        y="Mental_Health_Index",
+        order=[labels[False], labels[True]],
+        palette="magma",
+        width=0.5,
+        ax=ax
+    )
+    sns.stripplot(
+        data=plot_df,
+        x="Alignment_Label",
+        y="Mental_Health_Index",
+        order=[labels[False], labels[True]],
+        color="black",
+        alpha=0.25,
+        size=3,
+        jitter=0.2,
+        ax=ax
+    )
+
+    ax.set_title("Mental Health Index distribution by Music Alignment")
+    ax.set_xlabel("Alignment (Favorite vs. Most listened genre)")
     ax.set_ylabel("Mental Health Index (0–10)")
-    fig.suptitle("")  # removes pandas' automatic title
+    ax.set_ylim(0, 10)
 
     plt.tight_layout()
     plt.show()
     logger.info("Boxplot visualization displayed.")
-    
+
+
 def plot_alignment_means(df, logger):
-    """
-    Bar plot of mean Mental Health Index by Alignment with standard error.
-    """
+    _apply_plot_style()
+    order, labels = _alignment_labels()
+
+    if "Mental_Health_Index" not in df.columns or "Alignment" not in df.columns:
+        logger.error("Required columns for plot_alignment_means are missing.")
+        return
+
+    plot_df = df.dropna(subset=["Mental_Health_Index", "Alignment"]).copy()
+    plot_df["Alignment_Label"] = plot_df["Alignment"].map(labels)
+
     stats = (
-        df.groupby("Alignment")["Mental_Health_Index"]
+        plot_df.groupby("Alignment_Label")["Mental_Health_Index"]
         .agg(["mean", "std", "count"])
+        .reindex([labels[False], labels[True]])
     )
     stats["se"] = stats["std"] / (stats["count"] ** 0.5)
+    stats["ci95"] = 1.96 * stats["se"]
 
-    plt.bar(stats.index.astype(str), stats["mean"], yerr=stats["se"], capsize=5)
-    plt.xlabel("Alignment")
-    plt.ylabel("Mental Health Index")
-    plt.title("Mean Mental Health Index by Alignment")
+    aligned = plot_df.loc[plot_df["Alignment"] == True, "Mental_Health_Index"]
+    not_aligned = plot_df.loc[plot_df["Alignment"] == False, "Mental_Health_Index"]
+    t_stat, p_value = ttest_ind(aligned, not_aligned, nan_policy="omit")
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+
+    x = stats.index.tolist()
+    y = stats["mean"].values
+    yerr = stats["ci95"].values
+
+    sns.barplot(x=x, y=y, hue=x, ax=ax, palette="magma", errorbar=None,legend=False)
+    ax.errorbar(range(len(x)), y, yerr=yerr, fmt="none", capsize=6)
+
+    ax.set_title("Mean Mental Health Index by Music Alignment")
+    ax.set_xlabel("Alignment (Favorite vs. Most listened genre)")
+    ax.set_ylabel("Mental Health Index (0–10)")
+    ax.set_ylim(0, 10)
+
+    for i, grp in enumerate(x):
+        n = int(stats.loc[grp, "count"])
+        ax.text(i, y[i] + yerr[i] + 0.2, f"n={n}", ha="center", va="bottom", fontsize=12)
+
+    ax.text(0.5, 0.02, f"t = {t_stat:.3f} | p = {p_value:.4f}",
+            transform=ax.transAxes, ha="center", va="bottom", fontsize=12)
+
     plt.tight_layout()
     plt.show()
-
     logger.info("Mean comparison plot displayed.")
+
    
 def plot_disorders_by_alignment(df, health_cols, logger):
-    """
-    Boxplots for each mental health measure by Alignment (True/False).
-    """
+    _apply_plot_style()
+    order, labels = _alignment_labels()
+
     if "Alignment" not in df.columns:
         logger.error("Column 'Alignment' is missing.")
         return
 
-    long_df = (
-        df.melt(
-            id_vars=["Alignment"],
-            value_vars=health_cols,
-            var_name="Disorder",
-            value_name="Score",
-        )
-        .dropna(subset=["Score"])
+    pretty = {
+        "Distress_Index": "Distress Index\n(Anxiety+Depression)",
+        "Insomnia": "Insomnia",
+        "OCD": "OCD",
+        "Anxiety": "Anxiety",
+        "Depression": "Depression",
+    }
+
+    use_cols = [c for c in health_cols if c in df.columns]
+    if not use_cols:
+        logger.error("None of the requested health_cols exist in the DataFrame.")
+        return
+
+    plot_df = df[["Alignment"] + use_cols].dropna(subset=["Alignment"]).copy()
+    plot_df["Alignment_Label"] = plot_df["Alignment"].map(labels)
+
+    long_df = plot_df.melt(
+        id_vars=["Alignment_Label"],
+        value_vars=use_cols,
+        var_name="Measure",
+        value_name="Score"
+    ).dropna(subset=["Score"])
+
+    long_df["Measure"] = long_df["Measure"].map(lambda x: pretty.get(x, x))
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    sns.boxplot(
+        data=long_df,
+        x="Measure",
+        y="Score",
+        hue="Alignment_Label",
+        palette="magma",
+        ax=ax,
+        legend=False
     )
 
-    plt.figure(figsize=(12, 6))
-    sns.boxplot(data=long_df, x="Disorder", y="Score", hue="Alignment")
-    plt.title("Mental Health Scores by Alignment (per Disorder)")
-    plt.xlabel("Mental Health Measure")
-    plt.ylabel("Score (0–10)")
-    plt.xticks(rotation=45, ha="right")
+    ax.set_title("Mental health measures by Alignment")
+    ax.set_xlabel("")
+    ax.set_ylabel("Score (0–10)")
+    ax.set_ylim(0, 10)
+    ax.legend(title="Alignment", loc="upper right")
+
     plt.tight_layout()
     plt.show()
-
-    logger.info("Per-disorder boxplots displayed.")
+    logger.info("Per-measure boxplots displayed.")
 
