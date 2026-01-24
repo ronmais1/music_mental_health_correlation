@@ -53,6 +53,12 @@ def get_descriptive_stats(df, columns, logger):
     logger.info(f"Descriptive Statistics:\n{stats[['mean', 'std', 'min', 'max']]}")
     return stats
 
+def split_by_alignment(df: pd.DataFrame, col: str) -> tuple[pd.Series, pd.Series]:
+    """Return two series: aligned values and uniquely-aligned values for the given column."""
+    aligned = df.loc[df["Alignment"] == "True", col]
+    unique_alignment = df.loc[df["Alignment"] == "unique", col]
+    return aligned, unique_alignment
+
 def calculate_distress_index(df):
     """
     Here we create a new DataFrame consisting a MEAN of Anxiety and Depression under a column named Distress_Index

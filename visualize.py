@@ -1,3 +1,5 @@
+from enum import unique
+from utilities import split_by_alignment
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -14,8 +16,8 @@ def _apply_plot_style():
 
 
 def _alignment_labels():
-    order = [False, True]
-    labels = {False: "Not aligned", True: "Aligned"}
+    order = ["unique", True, False]
+    labels = {"False": "Not aligned", "True": "Aligned", "unique": "Unique"}
     return order, labels
 
 
@@ -129,7 +131,7 @@ def plot_boxplot(df, logger):
         data=plot_df,
         x="Alignment_Label",
         y="Mental_Health_Index",
-        order=[labels[False], labels[True]],
+        order=[labels["unique"], labels["True"]],
         palette="magma",
         width=0.5,
         ax=ax
@@ -138,7 +140,7 @@ def plot_boxplot(df, logger):
         data=plot_df,
         x="Alignment_Label",
         y="Mental_Health_Index",
-        order=[labels[False], labels[True]],
+        order=[labels["unique"], labels["True"]],
         color="black",
         alpha=0.25,
         size=3,
@@ -166,18 +168,19 @@ def plot_alignment_means(df, logger):
 
     plot_df = df.dropna(subset=["Mental_Health_Index", "Alignment"]).copy()
     plot_df["Alignment_Label"] = plot_df["Alignment"].map(labels)
-
+    
     stats = (
         plot_df.groupby("Alignment_Label")["Mental_Health_Index"]
         .agg(["mean", "std", "count"])
-        .reindex([labels[False], labels[True]])
+        .reindex([labels["unique"], labels["True"], labels["False"]])
     )
     stats["se"] = stats["std"] / (stats["count"] ** 0.5)
     stats["ci95"] = 1.96 * stats["se"]
 
-    aligned = plot_df.loc[plot_df["Alignment"] == True, "Mental_Health_Index"]
-    not_aligned = plot_df.loc[plot_df["Alignment"] == False, "Mental_Health_Index"]
-    t_stat, p_value = ttest_ind(aligned, not_aligned, nan_policy="omit")
+    
+    aligned, uniquely_aligned = split_by_alignment(plot_df, "Mental_Health_Index")
+
+    t_stat, p_value = ttest_ind(aligned, uniquely_aligned, nan_policy="omit")
 
     fig, ax = plt.subplots(figsize=(9, 6))
 
