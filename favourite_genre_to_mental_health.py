@@ -1,8 +1,9 @@
 from pathlib import Path
 import logging
+import numpy as np
 import pandas as pd
 from scipy.stats import ttest_ind
-from utilities import calculate_distress_index, load_data, basic_cleaning
+from utilities import calculate_distress_index, load_data, basic_cleaning, split_by_alignment
 from visualize import plot_boxplot, plot_alignment_means, plot_disorders_by_alignment
 from consts import AGGREGATED_HEALTH_COLS, HEALTH_COLS, FREQ_MAPPING, FREQ_PREFIX
 
@@ -38,25 +39,44 @@ def encode_genre_frequencies(df: pd.DataFrame, logger: logging.Logger) -> tuple[
 
 
 def compute_most_listened_genre(df: pd.DataFrame, genre_cols: list[str], logger: logging.Logger) -> pd.DataFrame:
-    """
-    Compute the most listened genre per participant.
-
-    We use idxmax(axis=1) to select the frequency column with the highest value in each row.
-    Then we clean the column label to keep only the genre name.
-    """
     df = df.copy()
-    df["Most_Listened_Genre"] = df[genre_cols].idxmax(axis=1)
 
-    df["Most_Listened_Genre"] = (
-        df["Most_Listened_Genre"]
-        .str.replace(r"Frequency \[", "", regex=True)
-        .str.replace("]", "", regex=False)
-    )
+    def pick_best_genre(row):
+        # Find the max value in the row
+        max_val = row[genre_cols].max()
+        
+        # Get all genres that share that max value
+        ties = row[genre_cols][row[genre_cols] == max_val].index.tolist()
+        without_freq_ties = [g.replace("Frequency [", "").replace("]", "") for g in ties]
+        
+        if len(without_freq_ties) == 1:
+            return without_freq_ties[0]
+        
+        # If there's a tie, check if 'Fav genre' is among the winners
+        if row["Fav genre"] in without_freq_ties:
+            return row["Fav genre"]
+        
+        # Otherwise, just pick the first one from the tie list
+        return without_freq_ties[0]
+
+    def get_num_of_most_listened_genres(row):
+        # Find the max value in the row
+        max_val = row[genre_cols].max()
+        
+        # Get all genres that share that max value
+        ties = row[genre_cols][row[genre_cols] == max_val].index.tolist()
+
+        return len(ties)
+
+    # Apply the logic row by row
+    # We include "Fav genre" in the axis=1 apply so the function can see it
+    df["Most_Listened_Genre"] = df[genre_cols + ["Fav genre"]].apply(pick_best_genre, axis=1)
+    df["Number_Of_Most_Listened_Genre"] = df[genre_cols].apply(get_num_of_most_listened_genres, axis=1)
 
     logger.info("Fav genre vs Most_Listened_Genre (head):")
     logger.info("\n" + str(df[["Fav genre", "Most_Listened_Genre"]].head()))
+    
     return df
-
 
 def compute_alignment(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
     """
@@ -64,7 +84,17 @@ def compute_alignment(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
     Alignment is True if favorite genre equals most listened genre.
     """
     df = df.copy()
-    df["Alignment"] = df["Fav genre"] == df["Most_Listened_Genre"]
+    # Define your conditions
+    conditions = [
+        ((df["Fav genre"] == df["Most_Listened_Genre"]) & (df["Number_Of_Most_Listened_Genre"] == 1)),
+        ((df["Fav genre"] == df["Most_Listened_Genre"]) & (df["Number_Of_Most_Listened_Genre"] > 1)),
+    ]
+
+    # Define the results for each condition (matching the order above)
+    choices = ["unique", True]
+
+    # Apply using np.select(conditions, choices, default=False)
+    df["Alignment"] = np.select(conditions, choices, default=False)
 
     logger.info("Alignment sample (head):")
     logger.info("\n" + str(df[["Fav genre", "Most_Listened_Genre", "Alignment"]].head()))
@@ -90,7 +120,6 @@ def summarize_alignment_distribution(df: pd.DataFrame, logger: logging.Logger) -
 
     logger.info("Percentages (%):")
     logger.info("\n" + str(percents.round(2)))
-
 
 
 def compute_mental_health_index(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
@@ -119,12 +148,6 @@ def summarize_alignment_statistic(df, logger):
 
     return summary
 
-def _split_by_alignment(df: pd.DataFrame, col: str) -> tuple[pd.Series, pd.Series]:
-    """Return two series: aligned values and not-aligned values for the given column."""
-    aligned = df.loc[df["Alignment"] == True, col]
-    not_aligned = df.loc[df["Alignment"] == False, col]
-    return aligned, not_aligned
-
 
 def run_ttest(df: pd.DataFrame, outcome_col: str, logger: logging.Logger, label: str | None = None) -> tuple[float, float]:
     """
@@ -132,11 +155,12 @@ def run_ttest(df: pd.DataFrame, outcome_col: str, logger: logging.Logger, label:
     - aligned participants
     - not aligned participants
     """
-    aligned, not_aligned = _split_by_alignment(df, outcome_col)
-    t_stat, p_value = ttest_ind(aligned, not_aligned, nan_policy="omit")
+    aligned, unique_aligned = split_by_alignment(df, outcome_col)
+    
+    t_stat, p_value = ttest_ind(aligned, unique_aligned, nan_policy="omit")
 
     title = label or outcome_col
-    logger.info(f"T-test results (Aligned vs Not aligned) — {title}:")
+    logger.info(f"T-test results (Aligned vs Unique aligned) — {title}:")
     logger.info(f"t-statistic = {t_stat:.3f}")
     logger.info(f"p-value     = {p_value:.4f}")
 
@@ -155,7 +179,7 @@ def run_ttests_per_disorder(df: pd.DataFrame, health_cols: list[str], logger: lo
     logger.info("=== Q2: T-tests per Mental Health Variable ===")
 
     for col in health_cols:
-        aligned, not_aligned = _split_by_alignment(df, col)
+        aligned, not_aligned = split_by_alignment(df, col)
         t_stat, p_value = ttest_ind(aligned, not_aligned, nan_policy="omit")
 
         logger.info(f"\n{col}:")
