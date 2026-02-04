@@ -1,69 +1,85 @@
+Music & Mental Health Analysis Project
 Project objectives
 Assumptions
 Thesis
 Results
 
+## Project Description
+Main Objectives: To investigate the relationship between music listening habits, genre preferences, and mental health self-reports.
 
-Project structure:
-./main.py - start point of the project
-./genre_mental_correlation.py - implementation for our first thesis
-./favourite_genre_to_mental_health.py - implementation for our second thesis
-./utilities.py - Utilities file for common function
-./visualize.py - Functions that help with visualization
-./consts.py - Constants across the code
-./tests
-    test_q1.py - Tests for thesis number one
-    test_q2_alignment.py - Tests for thesis number two
+Question 1: Can music genre clusters predict mental health distress beyond demographic factors?
 
-## Thesis 1
+Question 2: Does the "Alignment" between a user's favorite genre and their most-listened-to genre impact their mental health index?
+
+Hypotheses:
+
+H1: Specific music genre clusters (e.g., High Intensity) will show different correlations with Anxiety and Depression.
+
+H2: Participants with "Aligned" music preferences will report a lower Mental Health Index (better outcomes) than "Mismatched" participants.
 
 
-## Thesis 2
-Is alignment between a participant's favorite genre and the genre they listen to most
-associated with better mental health outcomes?
+## Project structure:
+The project is built with a modular architecture to ensure clean code and reusability:
 
-------------------------------------------------------------
-Key stages:
-Main pipeline (minimal): load the data → clean the data → encode the data → compute variables (genre, alignment, mental index) → test → plot (visualize) → interpret.
+./main.py: Entry point. Orchestrates the execution of both research questions.
+./genre_mental_correlation.py: Logic for Question 1 (Clustering & Regression).
+./favourite_genre_to_mental_health.py: Logic for Question 2 (Alignment & T-Tests).
+./utilities.py: Shared functions for data loading, cleaning, and logging.
+./visualize.py: Centralized module for plotting (Heatmaps, Bar charts, Boxplots).
+./consts.py: Centralized configuration, column names, and mappings.
+./tests/test_final.py: Unit Tests. Comprehensive validation using pytest.
 
-Operational definitions:
-1) "Most listened genre":
-   For each participant, we look at all columns that start with "Frequency [".
-   We convert frequency categories to an ordinal scale:
-   Never=0, Rarely=1, Sometimes=2, Very frequently=3
-   Then, the genre with the highest score (row-wise) is chosen via idxmax().
 
-2) "Alignment":
-   Alignment = True if Fav genre == Most_Listened_Genre, otherwise False.
-
-3) "Mental_Health_Index":
-   Mental_Health_Index = mean(Anxiety, Depression, Insomnia, OCD)
-   (Each variable is on a 0–10 scale, so the mean remains on a 0–10 scale.)
 
 ------------------------------------------------------------
+## Key stages:
+The project follows a standard Data Science workflow:
+
+Data Import: Loading CSV via pathlib and pandas.
+
+Data Processing: * Cleaning: Dropping invalid samples (NaNs in core columns).
+
+Encoding: Mapping categorical frequency (Never...Very Frequently) to (0-3).
+
+Modeling: * K-Means Clustering to group 16 genres into 3 psychological clusters.
+
+OLS Regression to measure predictive power (R-squared).
+
+Statistical Analysis: Performing independent samples T-tests for alignment.
+
+Visualization: Generating diagnostic and result-oriented graphs (Seaborn/Matplotlib).
+
+------------------------------------------------------------
+## Important Definitions
+Most Listened Genre: Identified by finding the highest frequency score across all genre columns per participant.
+
+Alignment: A boolean variable indicating if Fav Genre == Most Listened Genre.
+
+Distress Index: A mean score of Anxiety and Depression levels (0-10).
+
+Mental Health Index: A composite mean of all 4 indicators (Anxiety, Depression, Insomnia, OCD).
+
 Hypotheses:
 H0 (null): mean Mental_Health_Index is the same in aligned and not-aligned participants.
 H1 (alt) : mean Mental_Health_Index differs between aligned and not-aligned participants.
 
-------------------------------------------------------------
 Statistical test:
 Independent samples t-test (Aligned vs Not aligned), alpha = 0.05
 
 Notes about interpretation:
 - If p < 0.05 → reject H0 (significant difference)
 - If p >= 0.05 → fail to reject H0 (no significant difference)
----
+------------------------------------------------------------
 
-## Data Description
-| קטגוריה            | עמודות כלולות                                                                 | Data type        | Statistical scale        | תיאור |
-|--------------------|----------------------------------------------------------------------------------|------------------|--------------------------|-------|
-| דמוגרפיה וכללי     | Timestamp, Age, Streaming service, Permissions                                   | object / float64 | Nominal / Continuous     | פרטי המשיב, גיל ואישורי פרטיות. |
-| הרגלי האזנה        | Hours per day, BPM                                                               | float64          | Continuous               | כמות שעות האזנה וקצב מוזיקה. |
-| רקע מוזיקלי        | Fav genre, Instrumentalist, Composer, While working, Exploratory, Foreign languages | object           | Nominal / Dichotomous    | ז'אנר מועדף, האם מנגן/מלחין והרגלי חשיפה. |
-| תדירות ז'אנרים     | Frequency [16 Genres: Classical, Rock, Pop, Metal, Jazz, etc.]                  | object           | Ordinal                  | רמת צריכה של 16 ז'אנרים שונים. |
-| בריאות מנטלית      | Anxiety, Depression, Insomnia, OCD                                                | float64          | Discrete (0–10)          | דירוג עצמי של מדדי חוסן נפשי. |
-| השפעת המוזיקה      | Music effects                                                                    | object           | Nominal                  | השפעה סובייקטיבית (משפר/מחמיר). |
 
+##  Data Description
+The dataset contains 736 responses from a survey about music and mental health.
+Source: Music & Mental Health Survey Results (Kaggle)
+https://www.google.com/search?q=https://www.kaggle.com/datasets/catherinayandaya/mxmh-survey-results
+
+Categories: Demographics, Music Habits, Genre Frequencies (16 genres), and Mental Health scores.
 
 ## Instructions for running the project
-`python ./main.py`
+Install Dependencies: pip install -r requirements.txt
+Run Analysis: python main.py
+Run Tests: python -m pytest
