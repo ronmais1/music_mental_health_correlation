@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import ttest_ind
 from utilities import load_data, basic_cleaning, get_logger
 from visualize import plot_boxplot
-from consts import HEALTH_COLS, FREQ_MAPPING, FREQ_PREFIX, TIMESTAMP, AGE, HOURS_PER_DAY, FAV_GENRE, MOST_LISTENED_GENRE, ALIGNMENT, MENTAL_HEALTH_INDEX, FREQ_PREFIX
+from consts import MENTAL_HEALTH_COLS, FREQ_MAPPING, FREQ_PREFIX, FAV_GENRE, MOST_LISTENED_GENRE, ALIGNMENT, MENTAL_HEALTH_INDEX, FREQ_PREFIX
 
 
 def encode_genre_frequencies(df: pd.DataFrame, logger: logging.Logger) -> tuple[pd.DataFrame, list[str]]:
@@ -38,16 +38,16 @@ def compute_most_listened_genre(df: pd.DataFrame, genre_cols: list[str], logger:
     Then we clean the column label to keep only the genre name.
     """
     df = df.copy()
-    df["Most_Listened_Genre"] = df[genre_cols].idxmax(axis=1)
+    df[MOST_LISTENED_GENRE] = df[genre_cols].idxmax(axis=1)
 
-    df["Most_Listened_Genre"] = (
-        df["Most_Listened_Genre"]
+    df[MOST_LISTENED_GENRE] = (
+        df[MOST_LISTENED_GENRE]
         .str.replace(r"Frequency \[", "", regex=True)
         .str.replace("]", "", regex=False)
     )
 
     logger.info("Fav genre vs Most_Listened_Genre (head):")
-    logger.info("\n" + str(df[["Fav genre", "Most_Listened_Genre"]].head()))
+    logger.info("\n" + str(df[[FAV_GENRE, MOST_LISTENED_GENRE]].head()))
     return df
 
 
@@ -57,12 +57,12 @@ def compute_alignment(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
     Alignment is True if favorite genre equals most listened genre.
     """
     df = df.copy()
-    df["Alignment"] = df["Fav genre"] == df["Most_Listened_Genre"]
+    df[ALIGNMENT] = df[FAV_GENRE] == df[MOST_LISTENED_GENRE]
 
     logger.info("Alignment sample (head):")
-    logger.info("\n" + str(df[["Fav genre", "Most_Listened_Genre", "Alignment"]].head()))
+    logger.info("\n" + str(df[[FAV_GENRE, MOST_LISTENED_GENRE, ALIGNMENT]].head()))
     logger.info("Alignment counts:")
-    logger.info("\n" + str(df["Alignment"].value_counts()))
+    logger.info("\n" + str(df[ALIGNMENT].value_counts()))
     return df
 
 
@@ -72,10 +72,10 @@ def compute_mental_health_index(df: pd.DataFrame, logger: logging.Logger) -> pd.
     We use the mean of Anxiety, Depression, Insomnia, and OCD for each participant.
     """
     df = df.copy()
-    df["Mental_Health_Index"] = df[HEALTH_COLS].mean(axis=1)
+    df[MENTAL_HEALTH_INDEX] = df[MENTAL_HEALTH_COLS].mean(axis=1)
 
     logger.info("Mental health columns + index (head):")
-    logger.info("\n" + str(df[HEALTH_COLS + ["Mental_Health_Index"]].head()))
+    logger.info("\n" + str(df[MENTAL_HEALTH_COLS + [MENTAL_HEALTH_INDEX]].head()))
     return df
 
 
@@ -86,8 +86,8 @@ def run_ttest(df: pd.DataFrame, logger: logging.Logger) -> tuple[float, float]:
     - aligned participants
     - not aligned participants
     """
-    aligned = df[df["Alignment"] == True]["Mental_Health_Index"]
-    not_aligned = df[df["Alignment"] == False]["Mental_Health_Index"]
+    aligned = df[df[ALIGNMENT] == True][MENTAL_HEALTH_INDEX]
+    not_aligned = df[df[ALIGNMENT] == False][MENTAL_HEALTH_INDEX]
 
     t_stat, p_value = ttest_ind(aligned, not_aligned, nan_policy="omit")
 
@@ -117,7 +117,7 @@ def run_question_two(logger) -> None:
     csv_path = script_dir / "mxmh_survey_results.csv"
 
     df = load_data(csv_path, logger)
-    df = basic_cleaning(df, logger, HEALTH_COLS)
+    df = basic_cleaning(df, logger, MENTAL_HEALTH_COLS)
     df, genre_cols = encode_genre_frequencies(df, logger)
     df = compute_most_listened_genre(df, genre_cols, logger)
     df = compute_alignment(df, logger)

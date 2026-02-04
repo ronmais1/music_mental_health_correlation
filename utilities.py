@@ -21,12 +21,12 @@ def load_data(csv_path: Path, logger: logging.Logger) -> pd.DataFrame:
     logger.info(f"Loaded data: {df.shape[0]} rows, {df.shape[1]} columns")
     return df
 
-def basic_cleaning(df, logger, health_cols):
+def basic_cleaning(df, logger, mental_health_cols):
     """
     Cleans dataset by dropping NaNs in core research columns.
     """
     # Define required columns for a valid sample
-    required = ["Age", "Hours per day"] + health_cols
+    required = ["Age", "Hours per day"] + mental_health_cols
     before = len(df)
     
     # Drop missing values and reset index
@@ -34,7 +34,7 @@ def basic_cleaning(df, logger, health_cols):
     logger.info(f"Cleaning: {len(df_clean)} rows remaining (dropped {before - len(df_clean)})")
     return df_clean
 
-def encode_categorical_data(df, columns, mapping):
+def encode_categorical_data(df, columns, mapping, logger):
     """
     Maps string frequency values to numerical scale (0-3).
     """
@@ -43,12 +43,19 @@ def encode_categorical_data(df, columns, mapping):
         if col in df_encoded.columns:
             # Clean strings and apply numeric mapping
             df_encoded[col] = df_encoded[col].astype(str).str.strip().map(mapping).astype(float)
+        else:
+            logger.warning(f"Column {col} not found for encoding.")
     return df_encoded
 
 def get_descriptive_stats(df, columns, logger):
     """
     Logs mean, std, min, and max for specified columns.
     """
+    missing = [c for c in columns if c not in df.columns]
+    if missing:
+        logger.error(f"Cannot get stats: Missing columns {missing}")
+        return None
+    
     stats = df[columns].describe().T
     logger.info(f"Descriptive Statistics:\n{stats[['mean', 'std', 'min', 'max']]}")
     return stats
