@@ -108,8 +108,8 @@ def summarize_alignment_distribution(df: pd.DataFrame, logger: logging.Logger) -
     Summarize how common alignment is in the sample.
 
     We log:
-    - counts of Alignment (True/False)
-    - percentages of Alignment (True/False)
+    - counts of Alignment 
+    - percentages of Alignment 
     """
     counts = df["Alignment"].value_counts(dropna=False)
     percents = df["Alignment"].value_counts(normalize=True, dropna=False) * 100
@@ -125,7 +125,7 @@ def summarize_alignment_distribution(df: pd.DataFrame, logger: logging.Logger) -
 def compute_mental_health_index(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
     """
     Create Mental_Health_Index.
-    We use the mean of Anxiety, Depression, Insomnia, and OCD for each participant.
+    We use the mean of Anxiety , Depression, Insomnia, and OCD for each participant.
     """
     df = df.copy()
     df["Mental_Health_Index"] = df[HEALTH_COLS].mean(axis=1)

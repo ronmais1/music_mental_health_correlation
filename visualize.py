@@ -249,7 +249,6 @@ def plot_disorders_by_alignment(df, health_cols, logger):
         hue="Alignment_Label",
         palette="magma",
         ax=ax,
-        legend=False
     )
 
     ax.set_title("Mental health measures by Alignment")
