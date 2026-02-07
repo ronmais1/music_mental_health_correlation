@@ -5,7 +5,14 @@ import pandas as pd
 from scipy.stats import ttest_ind
 from utilities import calculate_distress_index, load_data, basic_cleaning, split_by_alignment
 from visualize import plot_boxplot, plot_alignment_means, plot_disorders_by_alignment
-from consts import AGGREGATED_HEALTH_COLS, HEALTH_COLS, FREQ_MAPPING, FREQ_PREFIX
+from consts import (
+    AGGREGATED_HEALTH_COLS,
+    HEALTH_COLS,
+    FREQ_MAPPING,
+    FREQ_PREFIX,
+    ALIGNMENT,
+    MENTAL_HEALTH_INDEX,
+)
 
 
 def encode_genre_frequencies(df: pd.DataFrame, logger: logging.Logger) -> tuple[pd.DataFrame, list[str]]:
@@ -94,12 +101,12 @@ def compute_alignment(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
     choices = ["unique", True]
 
     # Apply using np.select(conditions, choices, default=False)
-    df["Alignment"] = np.select(conditions, choices, default=False)
+    df[ALIGNMENT] = np.select(conditions, choices, default=False)
 
-    logger.info("Alignment sample (head):")
-    logger.info("\n" + str(df[["Fav genre", "Most_Listened_Genre", "Alignment"]].head()))
-    logger.info("Alignment counts:")
-    logger.info("\n" + str(df["Alignment"].value_counts()))
+    logger.info(f"{ALIGNMENT} sample (head):")
+    logger.info("\n" + str(df[["Fav genre", "Most_Listened_Genre", ALIGNMENT]].head()))
+    logger.info(f"{ALIGNMENT} counts:")
+    logger.info("\n" + str(df[ALIGNMENT].value_counts()))
     return df
 
 def summarize_alignment_distribution(df: pd.DataFrame, logger: logging.Logger) -> None:
@@ -111,10 +118,10 @@ def summarize_alignment_distribution(df: pd.DataFrame, logger: logging.Logger) -
     - counts of Alignment 
     - percentages of Alignment 
     """
-    counts = df["Alignment"].value_counts(dropna=False)
-    percents = df["Alignment"].value_counts(normalize=True, dropna=False) * 100
+    counts = df[ALIGNMENT].value_counts(dropna=False)
+    percents = df[ALIGNMENT].value_counts(normalize=True, dropna=False) * 100
 
-    logger.info("=== Q2: Alignment Distribution ===")
+    logger.info(f"=== Q2: {ALIGNMENT} Distribution ===")
     logger.info("Counts (N):")
     logger.info("\n" + str(counts))
 
@@ -124,14 +131,14 @@ def summarize_alignment_distribution(df: pd.DataFrame, logger: logging.Logger) -
 
 def compute_mental_health_index(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
     """
-    Create Mental_Health_Index.
+    Create MENTAL_HEALTH_INDEX.
     We use the mean of Anxiety , Depression, Insomnia, and OCD for each participant.
     """
     df = df.copy()
-    df["Mental_Health_Index"] = df[HEALTH_COLS].mean(axis=1)
+    df[MENTAL_HEALTH_INDEX] = df[HEALTH_COLS].mean(axis=1)
 
     logger.info("Mental health columns + index (head):")
-    logger.info("\n" + str(df[HEALTH_COLS + ["Mental_Health_Index"]].head()))
+    logger.info("\n" + str(df[HEALTH_COLS + [MENTAL_HEALTH_INDEX]].head()))
     return df
 
 def summarize_alignment_statistic(df, logger):
@@ -139,11 +146,11 @@ def summarize_alignment_statistic(df, logger):
     Descriptive statistics of Mental Health Index by Alignment.
     """
     summary = (
-        df.groupby("Alignment")["Mental_Health_Index"]
+        df.groupby(ALIGNMENT)[MENTAL_HEALTH_INDEX]
         .agg(["count", "mean", "std"])
     )
 
-    logger.info("=== Q2: Mental Health Index by Alignment ===")
+    logger.info(f"=== Q2: {MENTAL_HEALTH_INDEX} by {ALIGNMENT} ===")
     logger.info(f"\n{summary}")
 
     return summary
@@ -214,7 +221,7 @@ def run_question_two(logger) -> None:
     summarize_alignment_statistic(df, logger)
 
     # 1) t-test on the overall index (this answers the main hypothesis directly)
-    t_stat, p_value = run_ttest(df, "Mental_Health_Index", logger, label="Mental_Health_Index")
+    t_stat, p_value = run_ttest(df, MENTAL_HEALTH_INDEX, logger, label=MENTAL_HEALTH_INDEX)
 
     # 2) Visualize overall comparison
     plot_alignment_means(df, logger)
@@ -235,12 +242,12 @@ def run_question_two(logger) -> None:
     logger.info("Interpretation:")
     if p_value < 0.05:
         logger.info(
-            "There is a statistically significant difference in Mental_Health_Index "
+            f"There is a statistically significant difference in {MENTAL_HEALTH_INDEX} "
             "between aligned and not-aligned participants in this sample."
         )
     else:
         logger.info(
-            "There is no statistically significant difference in Mental_Health_Index "
+            f"There is no statistically significant difference in {MENTAL_HEALTH_INDEX} "
             "between aligned and not-aligned participants in this sample."
         )
     

@@ -7,6 +7,7 @@ from favourite_genre_to_mental_health import (
     compute_alignment,
     compute_mental_health_index,
 )
+from consts import ALIGNMENT, MENTAL_HEALTH_INDEX
 
 
 @pytest.fixture
@@ -24,7 +25,7 @@ def test_q2_alignment_and_mental_health_index_pipeline(logger):
     We validate that the pipeline correctly:
     1) Identifies the most listened genre using the max frequency column.
     2) Computes Alignment = (Fav genre == Most_Listened_Genre).
-    3) Computes Mental_Health_Index as the mean of the 4 health columns.
+    3) Computes MENTAL_HEALTH_INDEX as the mean of the 4 health columns.
 
     The dataset here is synthetic and minimal so expected values are deterministic.
     """
@@ -60,8 +61,8 @@ def test_q2_alignment_and_mental_health_index_pipeline(logger):
     # Assert: columns were created
     # ----------------------------
     assert "Most_Listened_Genre" in df.columns
-    assert "Alignment" in df.columns
-    assert "Mental_Health_Index" in df.columns
+    assert ALIGNMENT in df.columns
+    assert MENTAL_HEALTH_INDEX in df.columns
 
     # --------------------------------
     # Assert: computed values are right
@@ -70,7 +71,7 @@ def test_q2_alignment_and_mental_health_index_pipeline(logger):
 
     # IMPORTANT:
     # Alignment value is often numpy.bool_ (np.True_/np.False_), so we must not use "is True".
-    assert bool(df.loc[0, "Alignment"]) is True
+    assert bool(df.loc[0, ALIGNMENT]) is True
 
     # Mean of (4 + 6 + 2 + 8) / 4 = 5.0
-    assert df.loc[0, "Mental_Health_Index"] == pytest.approx(5.0, abs=1e-12)
+    assert df.loc[0, MENTAL_HEALTH_INDEX] == pytest.approx(5.0, abs=1e-12)

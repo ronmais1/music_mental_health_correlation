@@ -60,8 +60,8 @@ Distress Index: A mean score of Anxiety and Depression levels (0-10).
 Mental Health Index: A composite mean of all 4 indicators (Anxiety, Depression, Insomnia, OCD).
 
 Hypotheses:
-H0 (null): mean Mental_Health_Index is the same in aligned and not-aligned participants.
-H1 (alt) : mean Mental_Health_Index differs between aligned and not-aligned participants.
+H0 (null): mean MENTAL_HEALTH_INDEX is the same in aligned and not-aligned participants.
+H1 (alt) : mean MENTAL_HEALTH_INDEX differs between aligned and not-aligned participants.
 
 Statistical test:
 Independent samples t-test (Aligned vs Not aligned), alpha = 0.05

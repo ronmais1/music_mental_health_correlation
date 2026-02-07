@@ -1,6 +1,7 @@
 import pandas as pd
 import logging
 from pathlib import Path
+from consts import ALIGNMENT
 
 def get_logger():
     """
@@ -55,8 +56,8 @@ def get_descriptive_stats(df, columns, logger):
 
 def split_by_alignment(df: pd.DataFrame, col: str) -> tuple[pd.Series, pd.Series]:
     """Return two series: aligned values and uniquely-aligned values for the given column."""
-    aligned = df.loc[df["Alignment"] == "True", col]
-    unique_alignment = df.loc[df["Alignment"] == "unique", col]
+    aligned = df.loc[df[ALIGNMENT] == "True", col]
+    unique_alignment = df.loc[df[ALIGNMENT] == "unique", col]
     return aligned, unique_alignment
 
 def calculate_distress_index(df):

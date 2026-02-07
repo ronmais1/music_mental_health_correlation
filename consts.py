@@ -11,8 +11,6 @@ FREQ_MAPPING = {
     "Very frequently": 3,
 }
 
-FREQ_PREFIX = "Frequency ["
-
 # Column names from the dataset
 TIMESTAMP = "Timestamp"
 AGE = "Age"

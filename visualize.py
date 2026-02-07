@@ -7,6 +7,7 @@ import statsmodels.api as sm
 from sklearn.cluster import KMeans
 from matplotlib.lines import Line2D
 from scipy.stats import ttest_ind
+from consts import ALIGNMENT, MENTAL_HEALTH_INDEX
 
 def _apply_plot_style():
     sns.set_theme(style="whitegrid", context="talk")
@@ -119,18 +120,18 @@ def plot_boxplot(df, logger):
     _apply_plot_style()
     order, labels = _alignment_labels()
 
-    if "Mental_Health_Index" not in df.columns or "Alignment" not in df.columns:
+    if MENTAL_HEALTH_INDEX not in df.columns or ALIGNMENT not in df.columns:
         logger.error("Required columns for boxplot are missing in DataFrame.")
         return
 
-    plot_df = df.dropna(subset=["Mental_Health_Index", "Alignment"]).copy()
-    plot_df["Alignment_Label"] = plot_df["Alignment"].map(labels)
+    plot_df = df.dropna(subset=[MENTAL_HEALTH_INDEX, ALIGNMENT]).copy()
+    plot_df["Alignment_Label"] = plot_df[ALIGNMENT].map(labels)
 
     fig, ax = plt.subplots(figsize=(10, 6))
     sns.boxplot(
         data=plot_df,
         x="Alignment_Label",
-        y="Mental_Health_Index",
+        y=MENTAL_HEALTH_INDEX,
         order=[labels["unique"], labels["True"]],
         palette="magma",
         width=0.5,
@@ -139,7 +140,7 @@ def plot_boxplot(df, logger):
     sns.stripplot(
         data=plot_df,
         x="Alignment_Label",
-        y="Mental_Health_Index",
+        y=MENTAL_HEALTH_INDEX,
         order=[labels["unique"], labels["True"]],
         color="black",
         alpha=0.25,
@@ -162,15 +163,15 @@ def plot_alignment_means(df, logger):
     _apply_plot_style()
     order, labels = _alignment_labels()
 
-    if "Mental_Health_Index" not in df.columns or "Alignment" not in df.columns:
+    if MENTAL_HEALTH_INDEX not in df.columns or ALIGNMENT not in df.columns:
         logger.error("Required columns for plot_alignment_means are missing.")
         return
 
-    plot_df = df.dropna(subset=["Mental_Health_Index", "Alignment"]).copy()
-    plot_df["Alignment_Label"] = plot_df["Alignment"].map(labels)
+    plot_df = df.dropna(subset=[MENTAL_HEALTH_INDEX, ALIGNMENT]).copy()
+    plot_df["Alignment_Label"] = plot_df[ALIGNMENT].map(labels)
     
     stats = (
-        plot_df.groupby("Alignment_Label")["Mental_Health_Index"]
+        plot_df.groupby("Alignment_Label")[MENTAL_HEALTH_INDEX]
         .agg(["mean", "std", "count"])
         .reindex([labels["unique"], labels["True"], labels["False"]])
     )
@@ -178,7 +179,7 @@ def plot_alignment_means(df, logger):
     stats["ci95"] = 1.96 * stats["se"]
 
     
-    aligned, uniquely_aligned = split_by_alignment(plot_df, "Mental_Health_Index")
+    aligned, uniquely_aligned = split_by_alignment(plot_df, MENTAL_HEALTH_INDEX)
 
     t_stat, p_value = ttest_ind(aligned, uniquely_aligned, nan_policy="omit")
 
@@ -212,8 +213,8 @@ def plot_disorders_by_alignment(df, health_cols, logger):
     _apply_plot_style()
     order, labels = _alignment_labels()
 
-    if "Alignment" not in df.columns:
-        logger.error("Column 'Alignment' is missing.")
+    if ALIGNMENT not in df.columns:
+        logger.error(f"Column '{ALIGNMENT}' is missing.")
         return
 
     pretty = {
@@ -229,8 +230,8 @@ def plot_disorders_by_alignment(df, health_cols, logger):
         logger.error("None of the requested health_cols exist in the DataFrame.")
         return
 
-    plot_df = df[["Alignment"] + use_cols].dropna(subset=["Alignment"]).copy()
-    plot_df["Alignment_Label"] = plot_df["Alignment"].map(labels)
+    plot_df = df[[ALIGNMENT] + use_cols].dropna(subset=[ALIGNMENT]).copy()
+    plot_df["Alignment_Label"] = plot_df[ALIGNMENT].map(labels)
 
     long_df = plot_df.melt(
         id_vars=["Alignment_Label"],
@@ -260,4 +261,3 @@ def plot_disorders_by_alignment(df, health_cols, logger):
     plt.tight_layout()
     plt.show()
     logger.info("Per-measure boxplots displayed.")
-

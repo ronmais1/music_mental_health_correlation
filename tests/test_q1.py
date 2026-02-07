@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from consts import HEALTH_COLS, FREQ_MAPPING
+from consts import HEALTH_COLS, FREQ_MAPPING, MOST_LISTENED_GENRE, ALIGNMENT
 
 def run_all_tests(logger):
     """
@@ -19,7 +19,7 @@ def run_all_tests(logger):
         'Insomnia': [3, 5, 0],
         'OCD': [2, 4, 1],
         'Fav genre': ['Rock', 'Pop', 'Metal'],
-        'Most listened genre': ['Rock', 'Jazz', 'Metal'],
+        MOST_LISTENED_GENRE: ['Rock', 'Jazz', 'Metal'],
         'Frequency [Rock]': ['Never', 'Sometimes', 'Very frequently']
     })
 
@@ -56,9 +56,9 @@ def run_all_tests(logger):
     # Stage 4: Research Logic (Alignment for Question 2)
     try:
         # Testing the matching logic between favorite and most listened genres
-        mock_df['Alignment'] = np.where(mock_df['Fav genre'] == mock_df['Most listened genre'], 'Matched', 'Mismatched')
-        assert mock_df['Alignment'].iloc[0] == 'Matched'
-        assert mock_df['Alignment'].iloc[1] == 'Mismatched'
+        mock_df[ALIGNMENT] = np.where(mock_df['Fav genre'] == mock_df[MOST_LISTENED_GENRE], 'Matched', 'Mismatched')
+        assert mock_df[ALIGNMENT].iloc[0] == 'Matched'
+        assert mock_df[ALIGNMENT].iloc[1] == 'Mismatched'
         logger.info("Stage 4: Research Logic Test - Passed")
     except Exception as e:
         logger.error(f"Stage 4: Research Logic Test - Failed: {e}")
